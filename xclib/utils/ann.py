@@ -10,7 +10,7 @@ import pickle
 import numpy as np
 import nmslib
 import hnswlib
-from .dense import topk
+from .dense import topk, normalize
 from sklearn.neighbors import NearestNeighbors
 from .clustering import cluster_balance, b_kmeans_dense
 try:
@@ -48,21 +48,22 @@ class NearestNeighborGPU(object):
         self.space = space
         self.append_bias = append_bias
         self.device = "cuda"
+        self.normalize = normalize if space == 'cosine' else lambda z: z
 
     def fit(self, data: ndarray) -> None:
-        data = torch.from_numpy(data)
+        data = torch.from_numpy(self.normalize(data))
         if self.fp16:
             self.index = data.half().T.to(self.device)
         else:
             self.index = data.T.to(self.device)
 
     def _predict(self, data: ndarray) -> tuple[ndarray, ndarray]:
-        data = torch.from_numpy(data)
+        data = torch.from_numpy(self.normalize(data))
         if self.append_bias:
             data = torch.hstack(
                 [data, torch.ones((len(data), 1), dtype=data.dtype)])
         scores = data.to(self.device) @ self.index
-        val, ind = torch.topk(scores, k=self.num_neighbours)
+        val, ind = torch.topk(scores, k=self.num_neighbours, sorted=self.sorted)
         return ind.cpu().numpy(), val.cpu().numpy()
 
     def _set_query_time_params(self, num_neighbours: int = None):

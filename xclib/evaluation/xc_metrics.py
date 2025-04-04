@@ -193,8 +193,13 @@ def _get_topk(X, pad_indx=0, k=5, sorted=False, use_cython=False):
 
 
 def compute_inv_propesity(labels, A, B):
+    # Keeping this so that existing codes do not break
+    return compute_inv_propensity(labels, A, B)
+
+
+def compute_inv_propensity(labels, A, B):
     """
-    Computes inverse propernsity as proposed in Jain et al. 16.
+    Computes inverse propensity as proposed in Jain et al. 16.
 
     Arguments:
     ---------
